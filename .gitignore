@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Model files (large)
+*.pth
+*.pt
+*.bin
+*.onnx
+*.safetensors
+*.ckpt
+checkpoints/
+models/
+pretrained/
+
+# Audio files
+*.wav
+*.mp3
+*.flac
+*.ogg
+*.m4a
+
+# Data
+datasets/
+data/
+output/
+outputs/
+results/
+
+# Logs
+*.log
+wandb/
+mlruns/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
