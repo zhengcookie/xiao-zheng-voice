@@ -30,11 +30,24 @@
 
 ```
 xiao-zheng-voice/
-├── README.md          # 项目说明
-├── requirements.txt   # Python 依赖
-├── scripts/           # 工具脚本
-├── configs/           # 模型配置文件
-└── examples/          # 示例音频与输出
+├── app.py                 # Gradio Web UI 入口
+├── src/                   # 核心模块
+│   ├── utils.py           # 音频与文件工具函数
+│   └── workspace.py       # 工作空间目录管理
+├── scripts/
+│   └── smoke_test.py      # 骨架冒烟测试
+├── docs/                  # 规划与调研文档
+│   ├── agents/            # 技能配置（issue tracker / domain docs）
+│   └── plans/web-ui/      # Web UI 规划（计划 / PRD / issues / tasks）
+├── configs/               # 模型配置
+├── examples/              # 示例音频
+├── workspace/             # 运行期数据（自动创建，不入库）
+│   ├── uploads/           # 上传的原始音频
+│   ├── processed/         # 预处理后的音频
+│   ├── models/            # 训练好的模型
+│   └── outputs/           # 合成的音频
+├── pyproject.toml         # 项目元数据与依赖
+└── requirements.txt       # 锁定的依赖版本
 ```
 
 ## 🚀 快速开始
@@ -42,24 +55,50 @@ xiao-zheng-voice/
 ### 环境要求
 
 - Python 3.10+
-- CUDA 11.8+ (推荐)
-- GPU 显存 ≥ 8GB
+- **无需 GPU** — 骨架与模拟模式在 CPU 上即可运行
+- GPU（≥8GB 显存）仅在接入真实 GPT-SoVITS 后端时需要
 
 ### 安装
 
 ```bash
 git clone https://github.com/zhengcookie/xiao-zheng-voice.git
 cd xiao-zheng-voice
+
+# 推荐：使用虚拟环境
+python -m venv .venv
+
+# Windows
+.venv\Scripts\activate
+# macOS / Linux
+source .venv/bin/activate
+
 pip install -r requirements.txt
 ```
 
+### 启动 Web UI
+
+```bash
+python app.py
+```
+
+然后在浏览器打开 <http://localhost:7860>。
+
+### 验证安装
+
+```bash
+python scripts/smoke_test.py
+```
+
+该脚本会检查工作空间目录、工具函数与应用构建，无需浏览器。
+
 ### 使用流程
 
-1. **准备音频数据** — 录制目标人物的清晰语音（建议 3-10 分钟）
-2. **训练模型** — 使用 GPT-SoVITS / RVC 等工具进行声音克隆
-3. **合成语音** — 输入文本，生成克隆声音的语音
+1. **上传音频** — 在「上传音频」Tab 上传目标人物的清晰语音（建议 3–10 分钟）
+2. **训练模型** — 在「训练模型」Tab 一键训练，实时查看进度与日志
+3. **合成语音** — 在「合成语音」Tab 输入文本，生成并下载语音
 
-详细步骤请参阅各参考项目的官方文档。
+> ⏳ Web UI 目前为**骨架版本**（三个 Tab 与工作空间已就绪），
+> 具体功能正按 `docs/plans/web-ui/` 中的计划逐步实现。
 
 ## ⚠️ 免责声明
 

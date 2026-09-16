@@ -1,28 +1,29 @@
 # Xiao Zheng Voice - Dependencies
 # Install with: pip install -r requirements.txt
+#
+# Versions are pinned exactly to keep pip's resolver fast and
+# reproducible (a wide range makes pip backtrack for minutes).
 
-# Core ML
-torch>=2.0.0
-torchaudio>=2.0.0
+# --- Web UI (required) ---
+gradio==4.44.1
 
-# Audio processing
-librosa>=0.10.0
-soundfile>=0.12.0
-pydub>=0.25.1
+# --- Audio I/O (required) ---
+soundfile==0.12.1
+pydub==0.25.1
 
-# TTS / Voice Cloning (choose based on your preferred backend)
-# --- GPT-SoVITS ---
-# See: https://github.com/RVC-Boss/GPT-SoVITS
+# --- Numerics (required) ---
+numpy==1.26.4
+scipy==1.13.1
 
-# --- Coqui TTS ---
-# TTS>=0.22.0
+# --- Utilities ---
+tqdm==4.66.5
+pyyaml==6.0.2
 
-# --- RVC ---
-# fairseq
-# faiss-cpu
+# --- Optional: audio preprocessing (resampling, slicing, denoise) ---
+# Heavy (pulls numba/llvmlite). Only needed for the preprocessing feature.
+# librosa==0.10.2.post1
 
-# Utilities
-numpy>=1.24.0
-scipy>=1.10.0
-tqdm>=4.65.0
-pyyaml>=6.0
+# --- Optional: real voice cloning backend (v2; not needed in simulated mode) ---
+# See https://github.com/RVC-Boss/GPT-SoVITS
+# torch==2.4.1
+# torchaudio==2.4.1

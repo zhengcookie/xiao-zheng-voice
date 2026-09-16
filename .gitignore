@@ -1,3 +1,9 @@
+# 运行期数据（工作空间：上传音频 / 模型 / 输出）
+workspace/
+
+# 临时目录（沙箱 / 本地构建）
+.tmp/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -12,40 +18,44 @@ env/
 # Jupyter
 .ipynb_checkpoints/
 
-# Model files (large)
+# 模型权重（体积大，不入库）
 *.pth
 *.pt
 *.bin
 *.onnx
 *.safetensors
 *.ckpt
-checkpoints/
-models/
-pretrained/
+/checkpoints/
+/pretrained/
 
-# Audio files
+# 音频文件
 *.wav
 *.mp3
 *.flac
 *.ogg
 *.m4a
 
-# Data
-datasets/
-data/
-output/
-outputs/
-results/
+# 数据与输出
+/datasets/
+/data/
+/output/
+/outputs/
+/results/
 
-# Logs
+# 日志
 *.log
 wandb/
 mlruns/
+
+# 构建产物
+build/
+dist/
+*.egg-info/
 
 # IDE
 .vscode/
 .idea/
 
-# OS
+# 操作系统
 .DS_Store
 Thumbs.db

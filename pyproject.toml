@@ -1,0 +1,30 @@
+[project]
+name = "xiao-zheng-voice"
+version = "0.1.0"
+description = "基于开源语音克隆技术，克隆身边人的声音（非商业用途）"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+
+dependencies = [
+    "gradio==4.44.1",
+    "numpy==1.26.4",
+    "scipy==1.13.1",
+    "soundfile==0.12.1",
+    "pydub==0.25.1",
+]
+
+[project.optional-dependencies]
+# 音频预处理（重采样 / 切片 / 降噪）— 依赖较重
+preprocess = [
+    "librosa==0.10.2.post1",
+]
+
+# 真实语音克隆后端（第二版）
+gpt-sovits = [
+    "torch==2.4.1",
+    "torchaudio==2.4.1",
+]
+
+[tool.setuptools]
+packages = ["src"]
