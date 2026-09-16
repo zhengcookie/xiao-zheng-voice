@@ -1,15 +1,20 @@
 # Xiao Zheng Voice - Dependencies
 # Install with: pip install -r requirements.txt
 #
+# IMPORTANT: Keep this file pure ASCII. pip auto-decodes requirements
+# files using the system locale (cp936/GBK on Chinese Windows), and any
+# non-ASCII byte raises UnicodeDecodeError. Use English comments only.
+#
 # Versions are pinned exactly to keep pip's resolver fast and
 # reproducible (a wide range makes pip backtrack for minutes).
 
 # --- Web UI (required) ---
 gradio==4.44.1
-# gradio 4.44 依赖 huggingface_hub.HfFolder（1.0 已移除），锁到兼容的 0.28.1
+# gradio 4.44 needs huggingface_hub.HfFolder (removed in hub 1.0); pin to compatible 0.28.1
 huggingface_hub==0.28.1
-# gradio 4.44.1 与 starlette>=0.40 / fastapi>=0.115 的 TemplateResponse 签名不兼容，
-# 否则请求时抛 "TypeError: unhashable type: 'dict'"。锁到 gradio 4.44 时代对应版本。
+# gradio 4.44.1 breaks with the TemplateResponse signature change in
+# starlette>=0.40 / fastapi>=0.115 ("TypeError: unhashable type: 'dict'").
+# Pin to the matching gradio-4.44-era companion versions.
 starlette==0.38.6
 fastapi==0.112.4
 jinja2==3.1.4
