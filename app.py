@@ -12,6 +12,7 @@ from __future__ import annotations
 import gradio as gr
 
 from src import __version__
+from src import uploader
 from src.workspace import (
     MODELS_DIR,
     OUTPUTS_DIR,
@@ -67,10 +68,83 @@ def build_app() -> gr.Blocks:
                     "### 上传目标人物的语音样本\n"
                     "支持拖拽上传 WAV / MP3 / FLAC，建议总时长 3–10 分钟的清晰语音。"
                 )
-                gr.Markdown(
-                    "> ⏳ 上传、格式校验与波形预览将在后续版本中提供。"
+
+                upload_box = gr.File(
+                    label="语音样本（可拖拽 / 多选）",
+                    file_count="multiple",
+                    file_types=[".wav", ".mp3", ".flac"],
+                    type="filepath",
                 )
+                status_box = gr.Textbox(label="上传状态", interactive=False)
+
+                with gr.Row():
+                    upload_btn = gr.Button("⬆️ 上传", variant="primary")
+                    refresh_btn = gr.Button("🔄 重新扫描")
+
+                files_table = gr.Dataframe(
+                    headers=uploader.TABLE_HEADERS,
+                    value=uploader.list_upload_rows(),
+                    interactive=False,
+                    row_count=8,
+                )
+
+                preview_label = gr.Dropdown(
+                    label="选择文件预览波形",
+                    choices=uploader.list_upload_names(),
+                    interactive=True,
+                )
+                preview_player = gr.Audio(
+                    label="波形预览",
+                    type="filepath",
+                    interactive=False,
+                    show_download_button=True,
+                )
+
                 gr.Markdown(_workspace_overview())
+
+                def _merge_rows(new_rows: list[list]) -> list[list]:
+                    """把新上传行合并进磁盘现有行，按文件名去重。"""
+                    merged = uploader.list_upload_rows()
+                    seen = {r[0] for r in merged}
+                    for r in new_rows:
+                        if r[0] not in seen:
+                            merged.append(r)
+                            seen.add(r[0])
+                    return merged
+
+                def _do_upload(files):
+                    new_rows, msg = uploader.process_uploaded_files(files)
+                    rows = _merge_rows(new_rows)
+                    names = uploader.list_upload_names()
+                    preview = uploader.find_upload(names[-1]) if names else None
+                    return (
+                        rows,
+                        msg or (f"已见 {len(rows)} 个文件" if rows else "未选择文件。"),
+                        gr.Dropdown(choices=names, value=names[-1] if names else None),
+                        preview,
+                    )
+
+                def _do_refresh():
+                    rows = uploader.list_upload_rows()
+                    names = uploader.list_upload_names()
+                    status = f"已扫描到 {len(rows)} 个文件。" if rows else "上传目录为空。"
+                    return rows, status, gr.Dropdown(choices=names), None
+
+                def _do_preview(name):
+                    return uploader.find_upload(name)
+
+                upload_btn.click(
+                    _do_upload,
+                    inputs=[upload_box],
+                    outputs=[files_table, status_box, preview_label, preview_player],
+                )
+                refresh_btn.click(
+                    _do_refresh,
+                    outputs=[files_table, status_box, preview_label, preview_player],
+                )
+                preview_label.change(
+                    _do_preview, inputs=[preview_label], outputs=[preview_player]
+                )
 
             # ---- Tab 2: 训练模型 ----
             with gr.Tab(TAB_TRAIN):
