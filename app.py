@@ -53,6 +53,24 @@ def _workspace_overview() -> str:
     return "\n".join(lines)
 
 
+def _render_table(rows: list[list]) -> str:
+    """把上传列表行渲染成 HTML 表格（用 HTML 而非 Dataframe，规避
+    gradio 6.x 的 get_api_info / Dataframe schema 兼容问题）。"""
+    if not rows:
+        return "<p style='color:#888'>暂无上传音频。</p>"
+    head = "".join(f"<th style='padding:4px 10px;border-bottom:1px solid #ddd'>{c}</th>" for c in uploader.TABLE_HEADERS)
+    body = "".join(
+        "<tr>"
+        + "".join(f"<td style='padding:4px 10px;border-bottom:1px solid #eee'>{c}</td>" for c in row)
+        + "</tr>"
+        for row in rows
+    )
+    return (
+        "<table style='border-collapse:collapse;width:100%'>"
+        f"<thead><tr>{head}</tr></thead><tbody>{body}</tbody></table>"
+    )
+
+
 def build_app() -> gr.Blocks:
     """构建 Gradio 应用（骨架）。"""
     init_workspace()
@@ -81,12 +99,7 @@ def build_app() -> gr.Blocks:
                     upload_btn = gr.Button("⬆️ 上传", variant="primary")
                     refresh_btn = gr.Button("🔄 重新扫描")
 
-                files_table = gr.Dataframe(
-                    headers=uploader.TABLE_HEADERS,
-                    value=uploader.list_upload_rows(),
-                    interactive=False,
-                    row_count=8,
-                )
+                files_table = gr.HTML(value=_render_table(uploader.list_upload_rows()))
 
                 preview_label = gr.Dropdown(
                     label="选择文件预览波形",
@@ -118,7 +131,7 @@ def build_app() -> gr.Blocks:
                     names = uploader.list_upload_names()
                     preview = uploader.find_upload(names[-1]) if names else None
                     return (
-                        rows,
+                        _render_table(rows),
                         msg or (f"已见 {len(rows)} 个文件" if rows else "未选择文件。"),
                         gr.Dropdown(choices=names, value=names[-1] if names else None),
                         preview,
@@ -128,7 +141,7 @@ def build_app() -> gr.Blocks:
                     rows = uploader.list_upload_rows()
                     names = uploader.list_upload_names()
                     status = f"已扫描到 {len(rows)} 个文件。" if rows else "上传目录为空。"
-                    return rows, status, gr.Dropdown(choices=names), None
+                    return _render_table(rows), status, gr.Dropdown(choices=names), None
 
                 def _do_preview(name):
                     return uploader.find_upload(name)
