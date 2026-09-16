@@ -70,6 +70,13 @@ def main() -> int:
         failures.append(f"缺少 Tab：{missing}")
     print(f"✅ 应用构建成功，Tab：{sorted(found_tabs)}")
 
+    # --- 3b. Gradio API info 生成（回归：gradio_client bool-schema bug #11722）---
+    try:
+        demo.get_api_info()
+        print("✅ get_api_info() 生成成功（File/Audio schema 兼容）")
+    except Exception as exc:  # noqa: BLE001
+        failures.append(f"get_api_info() 失败：{exc!r}")
+
     # --- 结果 ---
     print()
     if failures:

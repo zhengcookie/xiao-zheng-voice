@@ -13,6 +13,11 @@ import gradio as gr
 
 from src import __version__
 from src import uploader
+from src import gradio_compat
+
+# Apply the gradio_client bool-schema fix before any component is built / served.
+gradio_compat.apply()
+
 from src.workspace import (
     MODELS_DIR,
     OUTPUTS_DIR,
