@@ -6,6 +6,8 @@
 
 # --- Web UI (required) ---
 gradio==4.44.1
+# gradio 4.44 依赖 huggingface_hub.HfFolder（1.0 已移除），锁到兼容的 0.28.1
+huggingface_hub==0.28.1
 
 # --- Audio I/O (required) ---
 soundfile==0.12.1

@@ -8,6 +8,8 @@ license = { text = "MIT" }
 
 dependencies = [
     "gradio==4.44.1",
+    # gradio 4.44 依赖 huggingface_hub.HfFolder（1.0 已移除），需 <1.0
+    "huggingface_hub==0.28.1",
     "numpy==1.26.4",
     "scipy==1.13.1",
     "soundfile==0.12.1",
