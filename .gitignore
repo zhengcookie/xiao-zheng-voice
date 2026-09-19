@@ -4,6 +4,9 @@ workspace/
 # 临时目录（沙箱 / 本地构建）
 .tmp/
 
+# 草稿目录（交接文档、临时笔记，不入库）
+.scratch/
+
 # Python
 __pycache__/
 *.py[cod]
