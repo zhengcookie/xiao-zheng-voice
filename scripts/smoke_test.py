@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import ast
 import sys
 from pathlib import Path
 
@@ -17,9 +18,83 @@ sys.path.insert(0, str(PROJECT_ROOT))
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+# 🔴 必须在任何 `import gradio` / `import httpx` 之前执行：这两个垫片都是顺序
+# 敏感的（NO_PROXY 净化要在梯度库导入前，schema 垫片要在 gradio_client 使用前）。
+# 之前这里漏了这一步，导致本脚本在装了 gradio 的真机上直接死于导入期。详见
+# src/bootstrap.py。
+from src import bootstrap  # noqa: E402
+
+bootstrap.prepare()
+
+
+def check_import_order() -> list[str]:
+    """回归守卫：凡导入 gradio / gradio_client 的入口，必须先 ``bootstrap.prepare()``。
+
+    这个顺序错误不会被任何纯逻辑单测发现，只会在装了 gradio 的真机上以
+    ``httpx.InvalidURL: Invalid port: ':1]'``（NO_PROXY 里的 IPv6）或
+    ``TypeError: argument of type 'bool' is not iterable``（gradio_client schema）
+    的形式炸掉。本仓库的 ``smoke_test.py`` / ``repro_api_info.py`` 就因为漏了
+    这一步静默坏掉过一整轮：用户拿到的每一条"验证命令"都会先死于导入，
+    永远看不到绿灯。
+
+    判定方式：静态解析 AST，比较"最早的 gradio/gradio_client 导入行"与
+    "最早的 ``bootstrap.prepare()`` 调用行"。规范写法见 src/bootstrap.py。
+    """
+    problems: list[str] = []
+    candidates = [PROJECT_ROOT / "app.py"]
+    candidates += sorted((PROJECT_ROOT / "scripts").glob("*.py"))
+
+    for path in candidates:
+        try:
+            tree = ast.parse(path.read_text(encoding="utf-8"))
+        except SyntaxError as exc:
+            problems.append(f"{path.name} 语法错误：{exc}")
+            continue
+
+        gradio_line: int | None = None
+        prepare_line: int | None = None
+
+        def _earliest(current: int | None, candidate: int) -> int:
+            return candidate if current is None else min(current, candidate)
+
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                if any(a.name.split(".")[0] in ("gradio", "gradio_client") for a in node.names):
+                    gradio_line = _earliest(gradio_line, node.lineno)
+            elif isinstance(node, ast.ImportFrom):
+                if (node.module or "").split(".")[0] in ("gradio", "gradio_client"):
+                    gradio_line = _earliest(gradio_line, node.lineno)
+            elif isinstance(node, ast.Call):
+                func = node.func
+                if (
+                    isinstance(func, ast.Attribute)
+                    and func.attr == "prepare"
+                    and isinstance(func.value, ast.Name)
+                    and func.value.id == "bootstrap"
+                ):
+                    prepare_line = _earliest(prepare_line, node.lineno)
+
+        if gradio_line is None:
+            continue
+        if prepare_line is None or prepare_line > gradio_line:
+            where = prepare_line if prepare_line is not None else "缺失"
+            problems.append(
+                f"{path.relative_to(PROJECT_ROOT)}：第 {gradio_line} 行导入 gradio/gradio_client，"
+                f"但 bootstrap.prepare() 在第 {where} 行（必须更早）"
+            )
+    return problems
+
 
 def main() -> int:
     failures: list[str] = []
+
+    # --- 0. 导入顺序守卫（回归：proxy_compat 必须先于 import gradio）---
+    order_problems = check_import_order()
+    failures.extend(order_problems)
+    if order_problems:
+        print(f"❌ 导入顺序守卫失败（{len(order_problems)} 处）")
+    else:
+        print("✅ 导入顺序守卫 OK（所有 gradio 入口均先应用 NO_PROXY 垫片）")
 
     # --- 1. 工作空间初始化 ---
     from src.workspace import WORKSPACE_SUBDIRS, init_workspace
@@ -74,10 +149,11 @@ def main() -> int:
     demo = build_app()
     expected_tabs = {TAB_UPLOAD, TAB_TRAIN, TAB_SYNTHESIZE}
     components = demo.config.get("components", [])
+    # gradio 4.44 的 Tab 组件 type 是 "tabitem"（<=4.43 才是 "tab"），两种都认。
     found_tabs = {
         comp.get("props", {}).get("label", "")
         for comp in components
-        if comp.get("type") == "tab"
+        if comp.get("type") in ("tab", "tabitem")
     }
     missing = expected_tabs - found_tabs
     if missing:

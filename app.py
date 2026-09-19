@@ -9,20 +9,17 @@
 
 from __future__ import annotations
 
-# Must run before `import gradio`: gradio constructs an httpx client at import
-# time, which crashes on malformed NO_PROXY entries (see src/proxy_compat.py).
-from src import proxy_compat
+# 顺序敏感：必须在 `import gradio` 之前（否则 httpx 会在导入期因 NO_PROXY 里的
+# IPv6 字面量崩溃），同时也要在 gradio_client 被调用之前打上 schema 垫片。
+# 详见 src/bootstrap.py。
+from src import bootstrap
 
-proxy_compat.apply()
+bootstrap.prepare()
 
 import gradio as gr
 
 from src import __version__
 from src import uploader
-from src import gradio_compat
-
-# Apply the gradio_client bool-schema fix before any component is built / served.
-gradio_compat.apply()
 
 from src.workspace import (
     MODELS_DIR,
@@ -65,8 +62,12 @@ def _workspace_overview() -> str:
 
 
 def _render_table(rows: list[list]) -> str:
-    """把上传列表行渲染成 HTML 表格（用 HTML 而非 Dataframe，规避
-    gradio 6.x 的 get_api_info / Dataframe schema 兼容问题）。"""
+    """把上传列表行渲染成 HTML 表格。
+
+    用 HTML 而非 ``gr.Dataframe``：排查 gradio_client 布尔 schema bug（#11722）期间
+    换过来的，事后证明 Dataframe 不是元凶，但 HTML 表格工作正常且样式可控，
+    故保留（详见 src/gradio_compat.py）。
+    """
     if not rows:
         return "<p style='color:#888'>暂无上传音频。</p>"
     head = "".join(f"<th style='padding:4px 10px;border-bottom:1px solid #ddd'>{c}</th>" for c in uploader.TABLE_HEADERS)
@@ -127,24 +128,30 @@ def build_app() -> gr.Blocks:
                 gr.Markdown(_workspace_overview())
 
                 def _merge_rows(new_rows: list[list]) -> list[list]:
-                    """把新上传行合并进磁盘现有行，按文件名去重。"""
-                    merged = uploader.list_upload_rows()
-                    seen = {r[0] for r in merged}
-                    for r in new_rows:
-                        if r[0] not in seen:
-                            merged.append(r)
-                            seen.add(r[0])
-                    return merged
+                    """把新上传行合并进磁盘现有行，按文件名去重。
+
+                    **新行必须覆盖磁盘行。** ``process_uploaded_files`` 是先把文件落盘
+                    再返回结果的，所以 ``list_upload_rows()`` 里早就有了同名条目，但那是
+                    纯磁盘扫描的产物、状态恒为「已上传」。若让它胜出，本次上传算出来的
+                    「过短(<3s)」等状态就永远显示不出来（这是 E2E 才抓到的缺陷）。
+                    """
+                    merged = {row[0]: row for row in uploader.list_upload_rows()}
+                    for row in new_rows:
+                        merged[row[0]] = row
+                    return list(merged.values())
 
                 def _do_upload(files):
                     new_rows, msg = uploader.process_uploaded_files(files)
                     rows = _merge_rows(new_rows)
                     names = uploader.list_upload_names()
-                    preview = uploader.find_upload(names[-1]) if names else None
+                    # 预览"本次上传的最后一个文件"，而不是名字排序最大的那个——
+                    # 否则先有 z.wav 时上传 a.wav，播放器会给你放 z.wav。
+                    target = new_rows[-1][0] if new_rows else (names[-1] if names else None)
+                    preview = uploader.find_upload(target) if target else None
                     return (
                         _render_table(rows),
                         msg or (f"已见 {len(rows)} 个文件" if rows else "未选择文件。"),
-                        gr.Dropdown(choices=names, value=names[-1] if names else None),
+                        gr.Dropdown(choices=names, value=target),
                         preview,
                     )
 

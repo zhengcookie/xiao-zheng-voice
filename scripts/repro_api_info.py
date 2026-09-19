@@ -16,13 +16,18 @@ import os
 import sys
 import traceback
 
-import gradio as gr
-import gradio_client
-
-# ensure the repo root (where app.py lives) is importable regardless of cwd
+# The repo root must be importable first, then both ordering-sensitive shims must
+# be applied before gradio/gradio_client are imported or used. See src/bootstrap.py.
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
+
+from src import bootstrap  # noqa: E402
+
+bootstrap.prepare()
+
+import gradio as gr  # noqa: E402
+import gradio_client  # noqa: E402
 
 
 def main() -> int:

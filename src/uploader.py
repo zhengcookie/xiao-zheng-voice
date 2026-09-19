@@ -131,7 +131,8 @@ def process_uploaded_files(gr_files: list) -> tuple[list[list], str]:
         if get_audio_duration(saved) < SHORT_AUDIO_SECONDS:
             meta["status"] = "过短(<3s)"
             messages.append(
-                f"⚠️ {saved.name}：时长 {meta['duration_str']}，建议 ≥{int(RECOMMENDED_AUDIO_SECONDS)}s"
+                f"⚠️ {saved.name}：音频过短（时长 {meta['duration_str']}），"
+                f"建议至少 {int(RECOMMENDED_AUDIO_SECONDS)} 秒"
             )
 
         rows.append([meta["name"], meta["duration_str"], meta["size_str"], meta["format"], meta["status"]])
