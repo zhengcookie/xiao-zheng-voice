@@ -9,6 +9,12 @@
 
 from __future__ import annotations
 
+# Must run before `import gradio`: gradio constructs an httpx client at import
+# time, which crashes on malformed NO_PROXY entries (see src/proxy_compat.py).
+from src import proxy_compat
+
+proxy_compat.apply()
+
 import gradio as gr
 
 from src import __version__

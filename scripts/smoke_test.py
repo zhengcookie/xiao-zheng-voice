@@ -47,6 +47,20 @@ def main() -> int:
             failures.append(f"工具函数断言失败：{label}")
     print(f"✅ 工具函数 OK（{len(checks)} 项断言）")
 
+    # --- 2b. 代理兼容（httpx 在 NO_PROXY 含 IPv6 时导入崩溃的防护）---
+    from src.proxy_compat import _parseable
+
+    proxy_checks = [
+        (_parseable("localhost"), "localhost 应保留"),
+        (_parseable("127.0.0.1"), "127.0.0.1 应保留"),
+        (not _parseable("[::1]"), "[::1] 应剔除"),
+        (not _parseable("::1"), "::1 应剔除"),
+    ]
+    for ok, label in proxy_checks:
+        if not ok:
+            failures.append(f"代理兼容断言失败：{label}")
+    print(f"✅ 代理兼容 OK（{len(proxy_checks)} 项断言）")
+
     # --- 3. Gradio 应用构建 ---
     try:
         import gradio as gr  # noqa: F401
